@@ -1,0 +1,118 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+}
+
+header {
+    background: #003366; /* Railway Blue */
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+main {
+    display: flex;
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+/* Sidebar/Filters */
+#filters {
+    width: 280px;
+    padding: 20px;
+    margin-right: 20px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    position: sticky; /* Keeps filters visible while scrolling */
+    top: 20px;
+    height: fit-content;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+#filters select, #filters input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.checkboxes label {
+    font-weight: normal;
+    margin-bottom: 5px;
+}
+
+#reset-button {
+    width: 100%;
+    padding: 10px;
+    background: #cc0000; /* Red for reset */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Main Display */
+#poster-display-area {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.poster-card {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+.poster-card h3 {
+    margin-top: 0;
+    font-size: 1.1em;
+    color: #003366;
+}
+
+.poster-card img {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border-radius: 3px;
+    cursor: pointer; /* Suggests the image is clickable for a larger view */
+}
+
+/* Pagination */
+#pagination-controls {
+    text-align: center;
+    padding: 20px;
+}
+
+#pagination-controls button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    background: #337ab7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#pagination-controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
