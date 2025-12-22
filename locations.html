@@ -3,34 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poster Locations Map</title>
+    <title>Poster Locations Map | Railway Poster Explorer</title>
+    
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+
     <style>
-        #map { height: 70vh; width: 100%; border-radius: 8px; border: 2px solid #003366; }
-        .map-container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-        .map-controls { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center; border: 1px solid #ccc; }
+        /* Specific styles for the map page layout */
+        .map-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* The filter bar at the top of the map */
+        .map-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            border: 1px solid #e0e6ed;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .map-controls .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-controls input[type="text"], 
+        .map-controls select {
+            padding: 8px 12px;
+            border: 1px solid #ccd6e0;
+            border-radius: 4px;
+        }
+
+        .map-controls label {
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* The Map Element */
+        #map {
+            height: 700px;
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #ccd6e0;
+            z-index: 1;
+        }
+
+        #marker-count {
+            margin-left: auto;
+            font-weight: bold;
+            color: #003366;
+            background: #eef2f7;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        /* Ensure images in popups don't overflow */
+        .leaflet-popup-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
+
     <header>
         <h1>Poster Locations Map</h1>
-        <nav style="margin-top: 15px;">
+        <p>Explore where these historic posters were designed to take you.</p>
+        <nav class="nav-container">
             <a href="index.html" class="nav-button">🏠 Back to Gallery</a>
         </nav>
     </header>
 
-    <div class="map-container">
+    <div class="map-wrapper">
         <div class="map-controls">
-            <strong>Filters:</strong>
-            <input type="text" id="map-search" placeholder="Search locations...">
-            <select id="map-company-filter"><option value="">— All Companies —</option></select>
-            <span id="marker-count">Showing: 0 markers</span>
+            <div class="filter-item">
+                <input type="text" id="map-search" placeholder="Search by location or title...">
+            </div>
+
+            <div class="filter-item">
+                <select id="map-company-filter">
+                    <option value="">— All Companies —</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label title="Show only posters featuring trains">
+                    <input type="checkbox" id="map-train"> 🚂 Trains
+                </label>
+            </div>
+
+            <div class="filter-item">
+                <label title="Show only seaside/coastal posters">
+                    <input type="checkbox" id="map-seaside"> 🏖️ Seaside
+                </label>
+            </div>
+
+            <div class="filter-item">
+                <label title="Show only posters featuring sports">
+                    <input type="checkbox" id="map-sports"> ⚽ Sports
+                </label>
+            </div>
+
+            <span id="marker-count">Loading locations...</span>
         </div>
+
         <div id="map"></div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+
     <script src="map-script.js"></script>
+
 </body>
 </html>
