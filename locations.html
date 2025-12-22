@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poster Locations Map</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 70vh; width: 100%; border-radius: 8px; border: 2px solid #003366; }
+        .map-container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        .map-controls { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Poster Locations Map</h1>
+        <nav style="margin-top: 15px;">
+            <a href="index.html" class="nav-button">🏠 Back to Gallery</a>
+        </nav>
+    </header>
+
+    <div class="map-container">
+        <div class="map-controls">
+            <strong>Filters:</strong>
+            <input type="text" id="map-search" placeholder="Search locations...">
+            <select id="map-company-filter"><option value="">— All Companies —</option></select>
+            <span id="marker-count">Showing: 0 markers</span>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="map-script.js"></script>
+</body>
+</html>

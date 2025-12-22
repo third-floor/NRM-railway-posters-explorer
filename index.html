@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historic Railway Poster Explorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Historic Railway Poster Explorer</h1>
+        <p>A searchable and filterable view of digitized railway posters.</p>
+        <nav style="margin-top: 15px;">
+            <a href="locations.html" class="nav-button">🗺️ View Poster Map</a>
+        </nav>
+    </header>
+
+    <main>
+        <aside id="filters">
+            <h2>🔎 Filters & Search</h2>
+            <div class="filter-group">
+                <label for="search-text">Search Poster Text (Q9):</label>
+                <input type="text" id="search-text" placeholder="e.g., 'Cornwall' or 'LNER'">
+            </div>
+            <button id="reset-button">Reset Filters</button>
+        </aside>
+
+        <section id="poster-display-area"></section>
+    </main>
+    
+    <div id="pagination-controls">
+        <button id="prev-button" disabled>Previous Page</button>
+        <span id="page-info">Page 1 of 1</span>
+        <button id="next-button" disabled>Next Page</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
