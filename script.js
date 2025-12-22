@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration and State ---
-    const POSTERS_PER_PAGE = 12; // Increased to 12 for better grid alignment
+    const POSTERS_PER_PAGE = 12; 
     let allPosters = []; 
     let filteredPosters = []; 
     let currentPage = 1;
@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevButton = document.getElementById('prev-button');
     const nextButton = document.getElementById('next-button');
     const pageInfoSpan = document.getElementById('page-info');
+    
+    // Filters
     const companyFilter = document.getElementById('company-filter');
     const elementsFilter = document.getElementById('elements-filter');
     const searchText = document.getElementById('search-text');
@@ -20,22 +22,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Helper Functions ---
 
+    /**
+     * Resiliently picks a location from available columns
+     */
+    const getBestLocation = (p) => {
+        return p.Q4_Location || 
+               p["Q4_Location 1"] || 
+               p.Q11_TravelDestinations || 
+               p["Q11_TravelDestinations 1"] || 
+               "N/A";
+    };
+
     const getImageUrl = (poster) => {
         const rawLinks = poster.image_links || "";
         const links = typeof rawLinks === 'string' ? rawLinks.split(';') : [];
-        // Prioritize "large" images, fall back to first link, then placeholder
         const found = links.find(l => l.toLowerCase().includes('large')) || links[0];
-        return found ? found.trim() : 'https://via.placeholder.com/300x400?text=No+Image+Available';
+        return found ? found.trim() : 'https://via.placeholder.com/300x400?text=No+Image';
     };
 
     const renderPosters = (posters, page) => {
+        if (!displayArea) return;
         displayArea.innerHTML = '';
+        
         const start = (page - 1) * POSTERS_PER_PAGE;
-        const end = start + POSTERS_PER_PAGE;
-        const pageItems = posters.slice(start, end);
+        const pageItems = posters.slice(start, start + POSTERS_PER_PAGE);
 
         if (pageItems.length === 0) {
-            displayArea.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px;">No posters match your current filters.</p>';
+            displayArea.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">No posters found matching those criteria.</p>';
             updatePaginationUI(0, 1);
             return;
         }
@@ -45,15 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'poster-card';
             
             card.innerHTML = `
-                <img src="${getImageUrl(p)}" alt="${p.title || 'Railway Poster'}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x400?text=Error+Loading+Image'">
+                <img src="${getImageUrl(p)}" alt="Poster" loading="lazy" onerror="this.src='https://via.placeholder.com/300x400?text=Image+Unavailable'">
                 <div class="poster-content">
                     <h3>${p.title || 'Untitled Poster'}</h3>
                     <p><strong>Company:</strong> ${p.Q5_RailwayCompany || 'N/A'}</p>
-                    <p><strong>Location:</strong> ${p.Q4_Location || 'N/A'}</p>
-                    <p class="description">${(p.Q1_Description || 'No description available.').substring(0, 120)}...</p>
-                    <div class="tag-container">
-                        <span class="tag">ID: ${p.id}</span>
-                    </div>
+                    <p><strong>Location:</strong> ${getBestLocation(p)}</p>
+                    <p class="description">${(p.Q1_Description || '').substring(0, 100)}...</p>
                 </div>
             `;
             displayArea.appendChild(card);
@@ -64,31 +74,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updatePaginationUI = (totalItems, page) => {
         const totalPages = Math.ceil(totalItems / POSTERS_PER_PAGE) || 1;
-        pageInfoSpan.textContent = `Page ${page} of ${totalPages} (${totalItems} posters)`;
-        prevButton.disabled = (page === 1);
-        nextButton.disabled = (page === totalPages || totalItems === 0);
+        if (pageInfoSpan) pageInfoSpan.textContent = `Page ${page} of ${totalPages} (${totalItems} total)`;
+        if (prevButton) prevButton.disabled = (page === 1);
+        if (nextButton) nextButton.disabled = (page === totalPages || totalItems === 0);
     };
 
     const applyFilters = () => {
-        const searchVal = searchText.value.toLowerCase();
-        const companyVal = companyFilter.value;
-        const elementVal = elementsFilter.value;
+        const searchVal = searchText?.value.toLowerCase() || "";
+        const companyVal = companyFilter?.value || "";
+        const elementVal = elementsFilter?.value || "";
 
         filteredPosters = allPosters.filter(p => {
-            // Text Search (checks title, location, and transcription)
-            const matchesSearch = !searchVal || 
-                (p.title || "").toLowerCase().includes(searchVal) || 
-                (p.Q4_Location || "").toLowerCase().includes(searchVal) ||
-                (p.Q9_Transcription || "").toLowerCase().includes(searchVal);
+            const loc = getBestLocation(p).toLowerCase();
+            const title = (p.title || "").toLowerCase();
+            const transcription = (p.Q9_Transcription || "").toLowerCase();
 
-            // Dropdown Filters
+            const matchesSearch = !searchVal || 
+                                 title.includes(searchVal) || 
+                                 loc.includes(searchVal) || 
+                                 transcription.includes(searchVal);
+
             const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
+            
             const matchesElement = !elementVal || (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal));
 
-            // Checkbox Filters (handling 'yes'/'no' strings from CSV)
-            const matchesTrain = !filterTrain.checked || (p.Q3_Train && p.Q3_Train.toLowerCase() === 'yes');
-            const matchesSeaside = !filterSeaside.checked || (p.Q7_Seaside && p.Q7_Seaside.toLowerCase() === 'yes');
-            const matchesSports = !filterSports.checked || (p.Q8_Sports && p.Q8_Sports.toLowerCase() === 'yes');
+            // Checkbox logic (checks for 'yes' or boolean true)
+            const matchesTrain = !filterTrain?.checked || String(p.Q3_Train).toLowerCase() === 'yes';
+            const matchesSeaside = !filterSeaside?.checked || String(p.Q7_Seaside).toLowerCase() === 'yes';
+            const matchesSports = !filterSports?.checked || String(p.Q8_Sports).toLowerCase() === 'yes';
 
             return matchesSearch && matchesCompany && matchesElement && matchesTrain && matchesSeaside && matchesSports;
         });
@@ -97,7 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPosters(filteredPosters, currentPage);
     };
 
-    const populateFilters = (data) => {
+    const populateFilterDropdowns = (data) => {
+        if (!companyFilter && !elementsFilter) return;
+
         const companies = new Set();
         const elements = new Set();
 
@@ -111,56 +126,68 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Add to Company Dropdown
-        [...companies].sort().forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = c;
-            companyFilter.appendChild(opt);
-        });
+        if (companyFilter) {
+            [...companies].sort().forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = c;
+                companyFilter.appendChild(opt);
+            });
+        }
 
-        // Add to Elements Dropdown
-        [...elements].sort().forEach(e => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = e;
-            elementsFilter.appendChild(opt);
-        });
+        if (elementsFilter) {
+            [...elements].sort().forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = e;
+                elementsFilter.appendChild(opt);
+            });
+        }
     };
 
-    // --- Event Listeners ---
+    // --- Setup Listeners ---
 
-    [searchText, companyFilter, elementsFilter, filterTrain, filterSeaside, filterSports].forEach(el => {
+    // We filter out null elements so addEventListener doesn't crash
+    const activeFilters = [
+        searchText, companyFilter, elementsFilter, 
+        filterTrain, filterSeaside, filterSports
+    ].filter(el => el !== null);
+
+    activeFilters.forEach(el => {
+        el.addEventListener('input', applyFilters);
         el.addEventListener('change', applyFilters);
-        if (el.type === 'text') el.addEventListener('input', applyFilters);
     });
 
-    prevButton.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            renderPosters(filteredPosters, currentPage);
-            window.scrollTo(0, 0);
-        }
-    });
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            activeFilters.forEach(el => {
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+            applyFilters();
+        });
+    }
 
-    nextButton.addEventListener('click', () => {
-        const totalPages = Math.ceil(filteredPosters.length / POSTERS_PER_PAGE);
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderPosters(filteredPosters, currentPage);
-            window.scrollTo(0, 0);
-        }
-    });
+    if (prevButton) {
+        prevButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPosters(filteredPosters, currentPage);
+                window.scrollTo(0, 0);
+            }
+        });
+    }
 
-    resetButton.addEventListener('click', () => {
-        searchText.value = '';
-        companyFilter.value = '';
-        elementsFilter.value = '';
-        filterTrain.checked = false;
-        filterSeaside.checked = false;
-        filterSports.checked = false;
-        applyFilters();
-    });
+    if (nextButton) {
+        nextButton.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredPosters.length / POSTERS_PER_PAGE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPosters(filteredPosters, currentPage);
+                window.scrollTo(0, 0);
+            }
+        });
+    }
 
-    // --- Initialization ---
+    // --- Initialize ---
 
     const init = async () => {
         try {
@@ -168,14 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
             allPosters = await response.json();
-            populateFilters(allPosters);
+            populateFilterDropdowns(allPosters);
             
             filteredPosters = allPosters;
             renderPosters(filteredPosters, currentPage);
 
         } catch (error) {
             console.error('Failed to load data:', error);
-            displayArea.innerHTML = `<p style="color:red; text-align:center;">Error loading data.json. Ensure the file is in the same folder as this script.</p>`;
+            if (displayArea) {
+                displayArea.innerHTML = `<p style="color:red; text-align:center;">Error loading data.json.</p>`;
+            }
         }
     };
 
