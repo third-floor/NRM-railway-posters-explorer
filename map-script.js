@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Initialize Map ---
-    // Centered on UK. Zoom level 6 is good for showing the whole country.
+    // Centered on the UK [Lat, Lng]. Zoom 6 covers the mainland well.
     const map = L.map('map').setView([54.5, -2.5], 6);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -18,68 +18,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sportsCheck = document.getElementById('map-sports');
     const countSpan = document.getElementById('marker-count');
 
-    // --- Core Logic ---
+    // --- Helper Functions ---
 
+    /**
+     * Resiliently picks a location string from multiple possible column names
+     */
+    const getBestLocation = (p) => {
+        return p.Q4_Location || 
+               p["Q4_Location 1"] || 
+               p.Q11_TravelDestinations || 
+               p["Q11_TravelDestinations 1"] || 
+               "N/A";
+    };
+
+    /**
+     * Extracts the best image URL for the popup
+     */
+    const getImageUrl = (p) => {
+        const rawLinks = p.image_links || "";
+        const links = typeof rawLinks === 'string' ? rawLinks.split(';') : [];
+        const found = links.find(l => l.toLowerCase().includes('large')) || links[0];
+        return found ? found.trim() : '';
+    };
+
+    /**
+     * Updates the map markers based on current filter state
+     */
     const updateMap = () => {
         markers.clearLayers();
         
-        const searchVal = searchInput.value.toLowerCase();
-        const companyVal = companyFilter.value;
-        const onlyTrains = trainCheck.checked;
-        const onlySeaside = seasideCheck.checked;
-        const onlySports = sportsCheck.checked;
+        const searchVal = searchInput?.value.toLowerCase() || "";
+        const companyVal = companyFilter?.value || "";
+        const onlyTrains = trainCheck?.checked || false;
+        const onlySeaside = seasideCheck?.checked || false;
+        const onlySports = sportsCheck?.checked || false;
 
         let visibleCount = 0;
 
         allPosters.forEach(p => {
-            // FIX: Ensure coordinates are treated as numbers (crucial for negative Longitude in West UK)
+            // FIX: Parsing coordinates as numbers allows negative Longitudes (Western UK)
             const lat = parseFloat(p.Latitude);
             const lng = parseFloat(p.Longitude);
 
-            // Only proceed if we have valid coordinates
+            // Only plot if coordinates are valid numbers
             if (!isNaN(lat) && !isNaN(lng)) {
                 
-                // 1. Search Filter (Title, Location, or Transcription)
+                const locText = getBestLocation(p);
+                const title = (p.title || "").toLowerCase();
+                const transcription = (p.Q9_Transcription || "").toLowerCase();
+
+                // 1. Search Filter
                 const matchesSearch = !searchVal || 
-                    (p.title || "").toLowerCase().includes(searchVal) || 
-                    (p.Q4_Location || "").toLowerCase().includes(searchVal) ||
-                    (p.Q9_Transcription || "").toLowerCase().includes(searchVal);
+                    title.includes(searchVal) || 
+                    locText.toLowerCase().includes(searchVal) ||
+                    transcription.includes(searchVal);
 
                 // 2. Company Filter
                 const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
 
-                // 3. Category Filters (Resilient check for 'yes' or 'no' strings)
-                const isTrain = (p.Q3_Train || "").toLowerCase() === 'yes';
-                const isSeaside = (p.Q7_Seaside || "").toLowerCase() === 'yes';
-                const isSports = (p.Q8_Sports || "").toLowerCase() === 'yes';
+                // 3. Logic Filters (Checks for 'yes' string or boolean true)
+                const matchesTrain = !onlyTrains || String(p.Q3_Train).toLowerCase() === 'yes';
+                const matchesSeaside = !onlySeaside || String(p.Q7_Seaside).toLowerCase() === 'yes';
+                const matchesSports = !onlySports || String(p.Q8_Sports).toLowerCase() === 'yes';
 
-                const matchesTrain = !onlyTrains || isTrain;
-                const matchesSeaside = !onlySeaside || isSeaside;
-                const matchesSports = !onlySports || isSports;
-
-                // Combine all logic
                 if (matchesSearch && matchesCompany && matchesTrain && matchesSeaside && matchesSports) {
-                    
-                    // Handle image selection for the popup
-                    const rawLinks = p.image_links || "";
-                    const links = typeof rawLinks === 'string' ? rawLinks.split(';') : [];
-                    const imgSrc = links.find(l => l.includes('large')) || links[0] || '';
-
+                    const imgSrc = getImageUrl(p);
                     const marker = L.marker([lat, lng]);
                     
-                    // Construct the Popup Content
+                    // Construct Popup
                     marker.bindPopup(`
                         <div style="width:220px; font-family: sans-serif;">
                             <h3 style="margin:0 0 5px 0; font-size:14px; color:#003366;">${p.title || 'Untitled'}</h3>
-                            <p style="margin:0 0 10px 0; font-size:12px;"><b>Location:</b> ${p.Q4_Location}</p>
-                            <img src="${imgSrc.trim()}" 
-                                 loading="lazy" 
-                                 style="width:100%; border-radius:4px; border:1px solid #ddd;"
-                                 onerror="this.src='https://via.placeholder.com/200x150?text=Preview+Not+Available'">
-                            <div style="margin-top:8px; font-size:11px; color:#666;">
-                                <b>Company:</b> ${p.Q5_RailwayCompany}<br>
+                            <p style="margin:0 0 10px 0; font-size:12px;"><b>Location:</b> ${locText}</p>
+                            ${imgSrc ? `<img src="${imgSrc}" style="width:100%; border-radius:4px; margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
+                            <div style="font-size:11px; color:#666;">
+                                <b>Company:</b> ${p.Q5_RailwayCompany || 'N/A'}<br>
                                 <b>ID:</b> ${p.id}
                             </div>
+                            <a href="index.html" style="display:block; margin-top:10px; font-size:11px; color:#003366; text-decoration:none;">← Search in Gallery</a>
                         </div>
                     `);
 
@@ -89,10 +105,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        countSpan.textContent = `Showing: ${visibleCount} locations`;
+        if (countSpan) {
+            countSpan.textContent = `Showing: ${visibleCount} locations`;
+        }
     };
 
+    /**
+     * Populates the Company dropdown from the dataset
+     */
     const populateCompanyDropdown = (data) => {
+        if (!companyFilter) return;
         const companies = new Set();
         data.forEach(p => {
             if (p.Q5_RailwayCompany && p.Q5_RailwayCompany !== "N/A") {
@@ -116,19 +138,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         allPosters = await response.json();
         
-        // Initial setup
         populateCompanyDropdown(allPosters);
         updateMap();
 
-        // Listeners for all inputs
-        searchInput.addEventListener('input', updateMap);
-        companyFilter.addEventListener('change', updateMap);
-        trainCheck.addEventListener('change', updateMap);
-        seasideCheck.addEventListener('change', updateMap);
-        sportsCheck.addEventListener('change', updateMap);
+        // Add Listeners
+        const controls = [searchInput, companyFilter, trainCheck, seasideCheck, sportsCheck];
+        controls.forEach(el => {
+            if (el) {
+                el.addEventListener('input', updateMap);
+                el.addEventListener('change', updateMap);
+            }
+        });
 
     } catch (err) {
         console.error("Map initialization error:", err);
-        countSpan.textContent = "Error loading map data.";
+        if (countSpan) countSpan.textContent = "Error loading map data.";
     }
 });
