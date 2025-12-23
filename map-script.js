@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Initialize Map ---
-    // Centered on the UK [Lat, Lng]. Zoom 6 covers the mainland well.
+    // Centered on the UK [Lat, Lng].
     const map = L.map('map').setView([54.5, -2.5], 6);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -21,12 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Helper Functions ---
 
     /**
-     * Resiliently picks a location string from multiple possible column names
+     * UPDATED: Specifically uses the new combined field from the Python script
      */
     const getBestLocation = (p) => {
-        return p.Q11_TravelDestinations_Combined || 
-               p.Q4_Location || 
-               "N/A";
+        return p.Q11_TravelDestinations_Combined || p.Q4_Location || "N/A";
     };
 
     /**
@@ -54,12 +52,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let visibleCount = 0;
 
         allPosters.forEach(p => {
-            // FIX: Parsing coordinates as numbers allows negative Longitudes (Western UK)
-            const lat = parseFloat(p.Latitude);
-            const lng = parseFloat(p.Longitude);
+            // Lat/Lng are now numbers or null (thanks to Python fix)
+            const lat = p.Latitude;
+            const lng = p.Longitude;
 
             // Only plot if coordinates are valid numbers
-            if (!isNaN(lat) && !isNaN(lng)) {
+            if (lat !== null && lng !== null) {
                 
                 const locText = getBestLocation(p);
                 const title = (p.title || "").toLowerCase();
@@ -74,8 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 2. Company Filter
                 const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
 
-                // 3. Logic Filters (Checks for 'yes' string or boolean true)
-                // Update the 'Logic Filters' section inside updateMap:
+                // 3. UPDATED Logic Filters to match new Python column names (_Present)
                 const matchesTrain = !onlyTrains || String(p.Q3_Train_Present).toLowerCase() === 'yes';
                 const matchesSeaside = !onlySeaside || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
                 const matchesSports = !onlySports || String(p.Q8_Sports_Present).toLowerCase() === 'yes';
@@ -92,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${imgSrc ? `<img src="${imgSrc}" style="width:100%; border-radius:4px; margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
                             <div style="font-size:11px; color:#666;">
                                 <b>Company:</b> ${p.Q5_RailwayCompany || 'N/A'}<br>
-                                <b>ID:</b> ${p.id}
+                                <b>ID:</b> ${p.uid || 'N/A'}
                             </div>
                             <a href="index.html" style="display:block; margin-top:10px; font-size:11px; color:#003366; text-decoration:none;">← Search in Gallery</a>
                         </div>
@@ -154,4 +151,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (countSpan) countSpan.textContent = "Error loading map data.";
     }
 });
-
