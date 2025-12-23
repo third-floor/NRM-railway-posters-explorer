@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let filteredPosters = []; 
     let currentPage = 1;
 
+    // --- DOM Elements ---
     const displayArea = document.getElementById('poster-display-area');
     const prevButton = document.getElementById('prev-button');
     const nextButton = document.getElementById('next-button');
@@ -16,6 +17,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterSports = document.getElementById('filter-sports');
     const resetButton = document.getElementById('reset-button');
 
+    // --- Modal Creation ---
+    // Dynamically inject the modal structure into the body
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'poster-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const closeModal = () => { modal.style.display = "none"; };
+    modal.querySelector('.close-modal').onclick = closeModal;
+    window.onclick = (event) => { if (event.target == modal) closeModal(); };
+
+    // --- Helper Functions ---
+
     const getBestLocation = (p) => {
         return p.Q11_TravelDestinations_Combined || p.Q4_Location || "N/A";
     };
@@ -27,11 +47,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return found ? found.trim() : 'https://via.placeholder.com/300x400?text=No+Image';
     };
 
+    /**
+     * MODIFICATION: Show a popup containing info for the clicked poster 
+     * AND all other entries sharing the same UID.
+     */
+    const showPosterDetails = (uid) => {
+        const related = allPosters.filter(p => p.uid === uid);
+        const primary = related[0];
+        const modalBody = document.getElementById('modal-body');
+        
+        // Generate a list of all locations associated with this UID
+        const locationsHtml = related
+            .map(p => `<li>${getBestLocation(p)}</li>`)
+            .join('');
+
+        modalBody.innerHTML = `
+            <div class="modal-grid">
+                <div class="modal-image-column">
+                    <img src="${getImageUrl(primary)}" style="width:100%; border-radius:8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                </div>
+                <div class="modal-info-column">
+                    <h2 style="margin-top:0;">${primary.title || 'Untitled'}</h2>
+                    <p><strong>Railway Company:</strong> ${primary.Q5_RailwayCompany || 'N/A'}</p>
+                    <p><strong>Primary Description:</strong> ${primary.Q1_Description || 'No description available.'}</p>
+                    <hr>
+                    <p><strong>All Associated Locations for this Item (UID: ${uid}):</strong></p>
+                    <ul>${locationsHtml}</ul>
+                    <p><strong>Visual Elements:</strong> ${primary.Q6_ElementsChecklist || 'N/A'}</p>
+                    <p><strong>Date:</strong> ${primary.date || 'N/A'}</p>
+                </div>
+            </div>
+        `;
+        modal.style.display = "block";
+    };
+
+    /**
+     * MODIFICATION: Render posters but de-duplicate by UID so only one card 
+     * appears for items with multiple location entries.
+     */
     const renderPosters = (posters, page) => {
         if (!displayArea) return;
         displayArea.innerHTML = '';
+
+        // Filter to unique UIDs for the gallery view
+        const seenUids = new Set();
+        const uniquePosters = posters.filter(p => {
+            if (seenUids.has(p.uid)) return false;
+            seenUids.add(p.uid);
+            return true;
+        });
+
         const start = (page - 1) * POSTERS_PER_PAGE;
-        const pageItems = posters.slice(start, start + POSTERS_PER_PAGE);
+        const pageItems = uniquePosters.slice(start, start + POSTERS_PER_PAGE);
 
         if (pageItems.length === 0) {
             displayArea.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">No posters found matching criteria.</p>';
@@ -47,18 +114,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="poster-content">
                     <h3>${p.title || 'Untitled'}</h3>
                     <p><strong>Company:</strong> ${p.Q5_RailwayCompany || 'N/A'}</p>
-                    <p><strong>Location:</strong> ${getBestLocation(p)}</p>
-                    <p class="description">${(p.Q1_Description || '').substring(0, 100)}...</p>
+                    <p><strong>ID:</strong> ${p.uid}</p>
                 </div>
             `;
+            // Add click event for the detail popup
+            card.addEventListener('click', () => showPosterDetails(p.uid));
             displayArea.appendChild(card);
         });
-        updatePaginationUI(posters.length, page);
+        updatePaginationUI(uniquePosters.length, page);
     };
 
     const updatePaginationUI = (totalItems, page) => {
         const totalPages = Math.ceil(totalItems / POSTERS_PER_PAGE) || 1;
-        if (pageInfoSpan) pageInfoSpan.textContent = `Page ${page} of ${totalPages} (${totalItems} total)`;
+        if (pageInfoSpan) pageInfoSpan.textContent = `Page ${page} of ${totalPages} (${totalItems} unique items)`;
         if (prevButton) prevButton.disabled = (page === 1);
         if (nextButton) nextButton.disabled = (page === totalPages || totalItems === 0);
     };
@@ -73,11 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (p.title || "").toLowerCase();
             const transcription = (p.Q9_Transcription || "").toLowerCase();
 
-            const matchesSearch = !searchVal || title.includes(searchVal) || loc.includes(searchVal) || transcription.includes(searchVal);
+            const matchesSearch = !searchVal || 
+                title.includes(searchVal) || 
+                loc.includes(searchVal) || 
+                transcription.includes(searchVal) ||
+                p.uid.toLowerCase().includes(searchVal);
+
             const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
+            
             const matchesElement = !elementVal || (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal));
             
-            // Fixed Column Names here
             const matchesTrain = !filterTrain?.checked || String(p.Q3_Train_Present).toLowerCase() === 'yes';
             const matchesSeaside = !filterSeaside?.checked || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
             const matchesSports = !filterSports?.checked || String(p.Q8_Sports_Present).toLowerCase() === 'yes';
@@ -118,6 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- Listeners ---
+
     const activeFilters = [searchText, companyFilter, elementsFilter, filterTrain, filterSeaside, filterSports].filter(el => el !== null);
     activeFilters.forEach(el => {
         el.addEventListener('input', applyFilters);
@@ -143,7 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (nextButton) nextButton.addEventListener('click', () => {
-        const totalPages = Math.ceil(filteredPosters.length / POSTERS_PER_PAGE);
+        // Calculate total pages based on unique posters
+        const uniqueCount = new Set(filteredPosters.map(p => p.uid)).size;
+        const totalPages = Math.ceil(uniqueCount / POSTERS_PER_PAGE);
         if (currentPage < totalPages) {
             currentPage++;
             renderPosters(filteredPosters, currentPage);
@@ -151,11 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Initialization ---
+
     const init = async () => {
         try {
             const response = await fetch('data.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             allPosters = await response.json();
+            
             populateFilterDropdowns(allPosters);
             filteredPosters = allPosters;
             renderPosters(filteredPosters, currentPage);
