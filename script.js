@@ -26,10 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * Resiliently picks a location from available columns
      */
     const getBestLocation = (p) => {
-        return p.Q4_Location || 
-               p["Q4_Location 1"] || 
-               p.Q11_TravelDestinations || 
-               p["Q11_TravelDestinations 1"] || 
+        return p.Q11_TravelDestinations_Combined || 
+               p.Q4_Location || 
                "N/A";
     };
 
@@ -98,10 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const matchesElement = !elementVal || (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal));
 
-            // Checkbox logic (checks for 'yes' or boolean true)
-            const matchesTrain = !filterTrain?.checked || String(p.Q3_Train).toLowerCase() === 'yes';
-            const matchesSeaside = !filterSeaside?.checked || String(p.Q7_Seaside).toLowerCase() === 'yes';
-            const matchesSports = !filterSports?.checked || String(p.Q8_Sports).toLowerCase() === 'yes';
+            const matchesTrain = !filterTrain?.checked || String(p.Q3_Train_Present).toLowerCase() === 'yes';
+            const matchesSeaside = !filterSeaside?.checked || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
+            const matchesSports = !filterSports?.checked || String(p.Q8_Sports_Present).toLowerCase() === 'yes';
 
             return matchesSearch && matchesCompany && matchesElement && matchesTrain && matchesSeaside && matchesSports;
         });
@@ -210,3 +207,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
