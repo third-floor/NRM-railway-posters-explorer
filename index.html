@@ -19,10 +19,41 @@
     <main>
         <aside id="filters">
             <h2>🔎 Filters & Search</h2>
+            
             <div class="filter-group">
-                <label for="search-text">Search Poster Text (Q9):</label>
+                <label for="search-text">Search Poster Text:</label>
                 <input type="text" id="search-text" placeholder="e.g., 'Cornwall' or 'LNER'">
             </div>
+
+            <div class="filter-group">
+                <label for="company-filter">Railway Company:</label>
+                <select id="company-filter">
+                    <option value="">— All Companies —</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="elements-filter">Visual Elements:</label>
+                <select id="elements-filter">
+                    <option value="">— All Elements —</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Quick Filters:</label>
+                <div class="checkboxes">
+                    <label title="Show only posters featuring trains">
+                        <input type="checkbox" id="filter-train"> 🚂 Trains
+                    </label>
+                    <label title="Show only seaside/coastal posters">
+                        <input type="checkbox" id="filter-seaside"> 🏖️ Seaside
+                    </label>
+                    <label title="Show only posters featuring sports">
+                        <input type="checkbox" id="filter-sports"> ⚽ Sports
+                    </label>
+                </div>
+            </div>
+
             <button id="reset-button">Reset Filters</button>
         </aside>
 
