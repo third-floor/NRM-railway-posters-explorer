@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nextButton) nextButton.disabled = (page === totalPages || totalItems === 0);
     };
 
-    const applyFilters = () => {
+const applyFilters = () => {
         const searchVal = searchText?.value.toLowerCase() || "";
         const companyVal = companyFilter?.value || "";
         const elementVal = elementsFilter?.value || "";
@@ -140,16 +140,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const loc = getBestLocation(p).toLowerCase();
             const title = (p.title || "").toLowerCase();
             const transcription = (p.Q9_Transcription || "").toLowerCase();
+            
+            // MODIFICATION: Added Q2 and Q6 to text search
+            const objects = (p.Q2_Objects || "").toLowerCase();
+            const elements = (p.Q6_ElementsChecklist || "").toLowerCase();
 
             const matchesSearch = !searchVal || 
                 title.includes(searchVal) || 
                 loc.includes(searchVal) || 
                 transcription.includes(searchVal) ||
+                objects.includes(searchVal) || 
+                elements.includes(searchVal) ||
                 p.uid.toLowerCase().includes(searchVal);
 
             const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
             
-            const matchesElement = !elementVal || (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal));
+            // MODIFICATION: Dropdown now checks both Q2 and Q6 fields
+            const matchesElement = !elementVal || 
+                (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal)) ||
+                (p.Q2_Objects && p.Q2_Objects.includes(elementVal));
             
             const matchesTrain = !filterTrain?.checked || String(p.Q3_Train_Present).toLowerCase() === 'yes';
             const matchesSeaside = !filterSeaside?.checked || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
@@ -167,15 +176,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = new Set();
         data.forEach(p => {
             if (p.Q5_RailwayCompany && p.Q5_RailwayCompany !== "N/A") companies.add(p.Q5_RailwayCompany);
-            if (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist !== "N/A") {
-                p.Q6_ElementsChecklist.split(';').forEach(e => {
-                    const clean = e.trim();
-                    if (clean) elements.add(clean);
-                });
-            }
+            
+            // MODIFICATION: Collect unique items from both Q2 and Q6 for the dropdown
+            [p.Q6_ElementsChecklist, p.Q2_Objects].forEach(field => {
+                if (field && field !== "N/A") {
+                    field.split(';').forEach(e => {
+                        const clean = e.trim();
+                        if (clean) elements.add(clean);
+                    });
+                }
+            });
         });
 
         if (companyFilter) {
+            companyFilter.innerHTML = '<option value="">— All Companies —</option>';
             [...companies].sort().forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = opt.textContent = c;
@@ -183,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         if (elementsFilter) {
+            elementsFilter.innerHTML = '<option value="">— All Elements —</option>';
             [...elements].sort().forEach(e => {
                 const opt = document.createElement('option');
                 opt.value = opt.textContent = e;
@@ -247,3 +262,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
