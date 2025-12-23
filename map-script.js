@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Initialize Map ---
+    // Centered on the UK [Lat, Lng].
     const map = L.map('map').setView([54.5, -2.5], 6);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -12,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- DOM Elements ---
     const searchInput = document.getElementById('map-search');
     const companyFilter = document.getElementById('map-company-filter');
-    const elementsFilter = document.getElementById('map-elements-filter');
+    const elementsFilter = document.getElementById('map-elements-filter'); // New element filter
     const trainCheck = document.getElementById('map-train');
     const seasideCheck = document.getElementById('map-seaside');
     const sportsCheck = document.getElementById('map-sports');
@@ -46,25 +47,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     /**
-     * Highlights the selected marker and all others with the same UID in red.
-     * Also populates the details area below the map.
+     * MODIFICATION: Highlights the selected marker and all others with the same UID in red.
+     * Also populates the info panel below the map.
      */
     const highlightUidGroup = (uid) => {
-        // Reset all markers to blue first
+        // Reset all markers to default blue icon
         markersLayer.eachLayer(layer => {
             if (layer instanceof L.Marker) {
                 layer.setIcon(blueIcon);
             }
         });
 
-        // Highlight markers with matching UID
+        // Highlight markers with matching UID in red
         markersLayer.eachLayer(layer => {
             if (layer instanceof L.Marker && layer.options.uid === uid) {
                 layer.setIcon(redIcon);
             }
         });
 
-        // Update the Information Panel below the map
+        // Populate the Information Panel below the map
         const relatedPosters = allPosters.filter(p => p.uid === uid);
         if (relatedPosters.length > 0) {
             detailsArea.style.display = 'block';
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     /**
-     * Updates map markers based on current filter state.
+     * UPDATED: Map markers based on filters including Unified Search (Q2 & Q6).
      */
     const updateMap = () => {
         markersLayer.clearLayers();
@@ -111,23 +112,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const locText = getBestLocation(p);
                 const title = (p.title || "").toLowerCase();
                 const transcription = (p.Q9_Transcription || "").toLowerCase();
+                const objects = (p.Q2_Objects || "").toLowerCase();
+                const elements = (p.Q6_ElementsChecklist || "").toLowerCase();
 
+                // MODIFICATION: Expanded search to include Q2_Objects and Q6_ElementsChecklist
                 const matchesSearch = !searchVal || 
                     title.includes(searchVal) || 
                     locText.toLowerCase().includes(searchVal) ||
                     transcription.includes(searchVal) ||
+                    objects.includes(searchVal) ||
+                    elements.includes(searchVal) ||
                     p.uid.toLowerCase().includes(searchVal);
 
                 const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
                 
-                // Visual Elements Filter
-                const matchesElement = !elementVal || (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal));
+                // MODIFICATION: Dropdown now validates against both checklist fields
+                const matchesElement = !elementVal || 
+                    (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist.includes(elementVal)) ||
+                    (p.Q2_Objects && p.Q2_Objects.includes(elementVal));
 
+                // Logic Filters for original columns
                 const matchesTrain = !onlyTrains || String(p.Q3_Train_Present).toLowerCase() === 'yes';
                 const matchesSeaside = !onlySeaside || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
                 const matchesSports = !onlySports || String(p.Q8_Sports_Present).toLowerCase() === 'yes';
 
                 if (matchesSearch && matchesCompany && matchesElement && matchesTrain && matchesSeaside && matchesSports) {
+                    // Pass UID in options so we can find it later for highlighting
                     const marker = L.marker([lat, lng], { uid: p.uid });
                     
                     marker.bindPopup(`
@@ -154,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     /**
-     * Populates Company and Elements dropdowns from the dataset.
+     * UPDATED: Collects unique items from both Q2_Objects and Q6_ElementsChecklist.
      */
     const populateDropdowns = (data) => {
         const companies = new Set();
@@ -164,18 +174,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (p.Q5_RailwayCompany && p.Q5_RailwayCompany !== "N/A") {
                 companies.add(p.Q5_RailwayCompany);
             }
-            if (p.Q6_ElementsChecklist && p.Q6_ElementsChecklist !== "N/A") {
-                p.Q6_ElementsChecklist.split(';').forEach(e => elements.add(e.trim()));
-            }
+            // MODIFICATION: Collect unique items from both Q2 and Q6 for the dropdown
+            [p.Q6_ElementsChecklist, p.Q2_Objects].forEach(field => {
+                if (field && field !== "N/A") {
+                    field.split(';').forEach(e => elements.add(e.trim()));
+                }
+            });
         });
 
         if (companyFilter) {
+            companyFilter.innerHTML = '<option value="">— All Companies —</option>';
             [...companies].sort().forEach(co => {
                 companyFilter.appendChild(new Option(co, co));
             });
         }
 
         if (elementsFilter) {
+            elementsFilter.innerHTML = '<option value="">— All Elements —</option>';
             [...elements].sort().forEach(el => {
                 elementsFilter.appendChild(new Option(el, el));
             });
@@ -183,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- Initialization ---
+
     try {
         const response = await fetch('data.json');
         if (!response.ok) throw new Error("Could not load data.json");
