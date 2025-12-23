@@ -24,10 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
      * Resiliently picks a location string from multiple possible column names
      */
     const getBestLocation = (p) => {
-        return p.Q4_Location || 
-               p["Q4_Location 1"] || 
-               p.Q11_TravelDestinations || 
-               p["Q11_TravelDestinations 1"] || 
+        return p.Q11_TravelDestinations_Combined || 
+               p.Q4_Location || 
                "N/A";
     };
 
@@ -77,9 +75,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const matchesCompany = !companyVal || p.Q5_RailwayCompany === companyVal;
 
                 // 3. Logic Filters (Checks for 'yes' string or boolean true)
-                const matchesTrain = !onlyTrains || String(p.Q3_Train).toLowerCase() === 'yes';
-                const matchesSeaside = !onlySeaside || String(p.Q7_Seaside).toLowerCase() === 'yes';
-                const matchesSports = !onlySports || String(p.Q8_Sports).toLowerCase() === 'yes';
+                // Update the 'Logic Filters' section inside updateMap:
+                const matchesTrain = !onlyTrains || String(p.Q3_Train_Present).toLowerCase() === 'yes';
+                const matchesSeaside = !onlySeaside || String(p.Q7_Seaside_Present).toLowerCase() === 'yes';
+                const matchesSports = !onlySports || String(p.Q8_Sports_Present).toLowerCase() === 'yes';
 
                 if (matchesSearch && matchesCompany && matchesTrain && matchesSeaside && matchesSports) {
                     const imgSrc = getImageUrl(p);
@@ -155,3 +154,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (countSpan) countSpan.textContent = "Error loading map data.";
     }
 });
+
